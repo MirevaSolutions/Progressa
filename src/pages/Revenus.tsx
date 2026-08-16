@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Search, Pencil, Trash2, X, Check, Wallet, AlertTriangle, SlidersHorizontal } from 'lucide-react';
-import { supabase, Revenue } from '@/lib/supabase';
+import { Revenue } from '@/types/revenue';
+import { getRevenues, createRevenue, updateRevenue, deleteRevenue,} from '@/services/revenue.service';
 import { formatAr, formatDate, MONTHS } from '@/lib/format';
 
 type Form = { amount: string; date: string; description: string };
@@ -40,10 +41,19 @@ export default function Revenus() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const load = async () => {
-    const { data } = await supabase.from('revenues').select('*').order('date', { ascending: false });
-    setRevenues(data ?? []);
+  try {
+    setLoading(true);
+
+    const data = await getRevenues();
+
+    setRevenues(data);
+  } catch (error) {
+    console.error('Erreur lors du chargement des revenus:', error);
+    setRevenues([]);
+  } finally {
     setLoading(false);
-  };
+  }
+};
 
   useEffect(() => { load(); }, []);
 
@@ -65,29 +75,60 @@ export default function Revenus() {
   const openEdit = (r: Revenue) => { setEditing(r); setForm({ amount: String(r.amount), date: r.date, description: r.description }); setFormError(''); setShowModal(true); };
 
   const handleSave = async () => {
-    const amount = parseFloat(form.amount.replace(',', '.'));
-    if (!form.amount || isNaN(amount) || amount <= 0) { setFormError('Le montant est obligatoire et doit être positif.'); return; }
-    if (!form.date) { setFormError('La date est obligatoire.'); return; }
-    setSaving(true);
-    setFormError('');
-    const payload = { amount, date: form.date, description: form.description };
+  const amount = parseFloat(form.amount.replace(',', '.'));
+
+  if (!form.amount || isNaN(amount) || amount <= 0) {
+    setFormError('Le montant est obligatoire et doit être positif.');
+    return;
+  }
+
+  if (!form.date) {
+    setFormError('La date est obligatoire.');
+    return;
+  }
+
+  setSaving(true);
+  setFormError('');
+
+  try {
+    const payload = {
+      amount,
+      date: form.date,
+      description: form.description.trim(),
+    };
+
     if (editing) {
-      const { error } = await supabase.from('revenues').update(payload).eq('id', editing.id);
-      if (error) { setFormError('Impossible d\'enregistrer les modifications.'); setSaving(false); return; }
+      await updateRevenue(editing.id, payload);
     } else {
-      const { error } = await supabase.from('revenues').insert(payload);
-      if (error) { setFormError('Impossible d\'enregistrer le revenu.'); setSaving(false); return; }
+      await createRevenue(payload);
     }
-    setSaving(false);
+
     setShowModal(false);
-    load();
-  };
+    await load();
+  } catch (error) {
+    console.error('Erreur lors de l’enregistrement du revenu:', error);
+
+    setFormError(
+      editing
+        ? 'Impossible d’enregistrer les modifications.'
+        : 'Impossible d’enregistrer le revenu.'
+    );
+  } finally {
+    setSaving(false);
+  }
+};
 
   const handleDelete = async (id: string) => {
-    await supabase.from('revenues').delete().eq('id', id);
+  try {
+    await deleteRevenue(id);
+
     setDeleteId(null);
-    load();
-  };
+
+    await load();
+  } catch (error) {
+    console.error('Erreur lors de la suppression du revenu:', error);
+  }
+};
 
   const years = Array.from(new Set(revenues.map(r => parseInt(r.date.split('-')[0])))).sort((a, b) => b - a);
   if (!years.includes(now.getFullYear())) years.unshift(now.getFullYear());

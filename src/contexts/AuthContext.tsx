@@ -20,18 +20,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
-    });
+useEffect(() => {
+  let mounted = true;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
+  const initializeAuth = async () => {
+    const { data, error } = await supabase.auth.getSession();
 
-    return () => subscription.unsubscribe();
-  }, []);
+    if (!mounted) return;
+
+    if (error) {
+      console.error('Failed to get session:', error);
+    }
+
+    setSession(data.session);
+    setLoading(false);
+  };
+
+  initializeAuth();
+
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((_event, session) => {
+    setSession(session);
+    setLoading(false);
+  });
+
+  return () => {
+    mounted = false;
+    subscription.unsubscribe();
+  };
+}, []);
+
 
   const signOut = async () => {
     await supabase.auth.signOut();

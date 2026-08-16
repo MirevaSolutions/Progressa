@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { AuthService } from '@/services/auth.service';
 import { TrendingUp, Eye, EyeOff, Target, CalendarDays, Wallet } from 'lucide-react';
 
 const FEATURES = [
@@ -51,38 +51,36 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError('');
 
-    if (!email.trim()) { setError('Veuillez saisir votre email.'); return; }
-    if (!password.trim()) { setError('Veuillez saisir votre mot de passe.'); return; }
-    if (password.length < 6) { setError('Le mot de passe doit contenir au moins 6 caractères.'); return; }
+  if (!email.trim()) {
+    setError('Veuillez saisir votre email.');
+    return;
+  }
 
-    setLoading(true);
-    try {
-      if (mode === 'signup') {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-      }
-    } catch (err: unknown) {
-      const msg = (err as { message?: string }).message ?? '';
-      if (msg.includes('Invalid login credentials')) {
-        setError('Email ou mot de passe incorrect.');
-      } else if (msg.includes('User already registered')) {
-        setError('Un compte existe déjà avec cet email. Connectez-vous.');
-      } else if (msg.includes('Email not confirmed')) {
-        setError('Veuillez confirmer votre email.');
-      } else {
-        setError('Une erreur est survenue. Veuillez réessayer.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (!password.trim()) {
+    setError('Veuillez saisir votre mot de passe.');
+    return;
+  }
+
+  if (password.length < 6) {
+    setError('Le mot de passe doit contenir au moins 6 caractères.');
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    await AuthService.authenticate(mode, email, password);
+  } catch (err: unknown) {
+    const message = (err as { message?: string }).message ?? '';
+    setError(AuthService.getFriendlyError(message));
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2">

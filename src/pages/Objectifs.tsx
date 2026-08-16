@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Target, Check, Pencil, X, AlertCircle } from 'lucide-react';
-import { supabase, Goal, Revenue } from '@/lib/supabase';
+import { Goal } from '@/types/goal';
+import { Revenue } from '@/types/revenue';
+import { getGoalsByYear, upsertGoal as saveGoal,} from '@/services/goal.service';
 import { formatAr, monthName, MONTHS } from '@/lib/format';
+import { getRevenuesByYear, } from '@/services/revenue.service';
 
 function ProgressBar({ value, max }: { value: number; max: number }) {
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
@@ -86,12 +89,25 @@ function GoalModal({
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
-    const amount = parseFloat(form.target.replace(',', '.'));
-    if (!form.target || isNaN(amount) || amount <= 0) { setError('Le montant est obligatoire et doit être positif.'); return; }
-    setSaving(true);
+  const amount = parseFloat(form.target.replace(',', '.'));
+
+  if (!form.target || isNaN(amount) || amount <= 0) {
+    setError('Le montant est obligatoire et doit être positif.');
+    return;
+  }
+
+  setSaving(true);
+  setError('');
+
+  try {
     await onSave(amount);
+  } catch (error) {
+    console.error(error);
+    setError('Impossible d’enregistrer l’objectif.');
+  } finally {
     setSaving(false);
-  };
+  }
+};
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-[2px]">
@@ -148,15 +164,26 @@ export default function Objectifs() {
   const [editingMonthly, setEditingMonthly] = useState(false);
   const [editingAnnual, setEditingAnnual] = useState(false);
 
-  const load = async () => {
-    const [{ data: g }, { data: r }] = await Promise.all([
-      supabase.from('goals').select('*').eq('year', year),
-      supabase.from('revenues').select('*').gte('date', `${year}-01-01`).lte('date', `${year}-12-31`),
+ const load = async () => {
+  try {
+    setLoading(true);
+
+    const [goalsData, revenuesData] = await Promise.all([
+      getGoalsByYear(year),
+      getRevenuesByYear(year),
     ]);
-    setGoals(g ?? []);
-    setRevenues(r ?? []);
+
+    setGoals(goalsData);
+    setRevenues(revenuesData);
+  } catch (error) {
+    console.error('Erreur lors du chargement des objectifs:', error);
+
+    setGoals([]);
+    setRevenues([]);
+  } finally {
     setLoading(false);
-  };
+  }
+};
 
   useEffect(() => { load(); }, [year]);
 
@@ -166,19 +193,33 @@ export default function Objectifs() {
   const monthlyEarned = revenues.filter(r => parseInt(r.date.split('-')[1]) === month).reduce((s, r) => s + r.amount, 0);
   const annualEarned = revenues.reduce((s, r) => s + r.amount, 0);
 
-  const upsertGoal = async (type: 'monthly' | 'annual', amount: number) => {
-    const existing = type === 'monthly' ? monthlyGoal : annualGoal;
-    if (existing) {
-      await supabase.from('goals').update({ target_amount: amount }).eq('id', existing.id);
-    } else {
-      const payload: { type: string; year: number; month?: number; target_amount: number } = { type, year, target_amount: amount };
-      if (type === 'monthly') payload.month = month;
-      await supabase.from('goals').insert(payload);
-    }
+  const handleSaveGoal = async (
+  type: 'monthly' | 'annual',
+  amount: number
+) => {
+  try {
+    const existing = type === 'monthly'
+      ? monthlyGoal
+      : annualGoal;
+
+    await saveGoal(
+      type,
+      year,
+      amount,
+      type === 'monthly' ? month : undefined,
+      existing
+    );
+
     setEditingMonthly(false);
     setEditingAnnual(false);
-    load();
-  };
+
+    await load();
+  } catch (error) {
+    console.error('Erreur lors de l’enregistrement de l’objectif:', error);
+
+    throw error;
+  }
+};
 
   const years = [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1];
 
@@ -220,7 +261,7 @@ export default function Objectifs() {
         <GoalModal
           title={`Objectif mensuel — ${monthName(month)} ${year}`}
           current={monthlyGoal}
-          onSave={amount => upsertGoal('monthly', amount)}
+          onSave={amount => handleSaveGoal('monthly', amount)}
           onClose={() => setEditingMonthly(false)}
         />
       )}
@@ -228,7 +269,7 @@ export default function Objectifs() {
         <GoalModal
           title={`Objectif annuel — ${year}`}
           current={annualGoal}
-          onSave={amount => upsertGoal('annual', amount)}
+          onSave={amount => handleSaveGoal('annual', amount)}
           onClose={() => setEditingAnnual(false)}
         />
       )}
