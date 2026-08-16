@@ -1,17 +1,52 @@
 import { useEffect, useState } from 'react';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Wallet, BarChart3, Trophy } from 'lucide-react';
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
+} from 'recharts';
 import { supabase, Revenue } from '@/lib/supabase';
 import { formatAr, MONTHS } from '@/lib/format';
 
-function Bar({ value, max, label }: { value: number; max: number; label: string }) {
-  const pct = max > 0 ? Math.max((value / max) * 100, value > 0 ? 2 : 0) : 0;
+// Palette resserrée : une seule teinte (emerald) à intensité variable, plus du gris neutre.
+const COLORS = {
+  strong: '#10b981',  // emerald-500 — valeur mise en avant
+  soft: '#d1fae5',    // emerald-100 — valeurs normales
+  neutral: '#e2e8f0', // slate-200 — hors focus
+  grid: '#f1f5f9',
+};
+
+function ChartTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
   return (
-    <div className="flex items-end gap-2">
-      <div className="w-20 text-right text-xs text-slate-500 pb-0.5 flex-shrink-0">{label}</div>
-      <div className="flex-1 h-7 bg-slate-100 rounded overflow-hidden">
-        <div className="h-full bg-emerald-500 rounded transition-all" style={{ width: `${pct}%` }} />
+    <div className="bg-slate-800 text-white text-xs rounded px-2.5 py-1.5 shadow-lg">
+      <p className="font-medium mb-0.5">{label}</p>
+      {payload.map((p: any, i: number) => (
+        <p key={i}>{formatAr(p.value)}</p>
+      ))}
+    </div>
+  );
+}
+
+function StatCard({ icon, label, value, hint }: { icon: React.ReactNode; label: string; value: string; hint?: string }) {
+  return (
+    <div className="bg-white rounded-md border border-slate-100 shadow-sm p-3">
+      <div className="flex items-center gap-1.5 text-slate-500 text-xs mb-1">
+        <span className="text-emerald-500">{icon}</span>
+        {label}
       </div>
-      <div className="w-28 text-xs text-slate-600 pb-0.5 flex-shrink-0">{formatAr(value)}</div>
+      <p className="text-lg font-bold text-slate-800">{value}</p>
+      {hint && <p className="text-xs text-slate-400 mt-0.5">{hint}</p>}
+    </div>
+  );
+}
+
+function CardShell({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="bg-white rounded-md border border-slate-100 shadow-sm p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="font-semibold text-slate-700 text-sm">{title}</h2>
+        {action}
+      </div>
+      {children}
     </div>
   );
 }
@@ -42,16 +77,19 @@ export default function Statistiques() {
     label: MONTHS[i].slice(0, 3),
     total: revenues.filter(r => parseInt(r.date.split('-')[1]) === i + 1).reduce((s, r) => s + r.amount, 0),
   }));
-  const maxMonthly = Math.max(...monthlyData.map(d => d.total), 1);
   const yearlyTotal = revenues.reduce((s, r) => s + r.amount, 0);
+  const activeMonths = monthlyData.filter(d => d.total > 0);
+  const avgMonthly = activeMonths.length > 0 ? yearlyTotal / activeMonths.length : 0;
+  const bestMonth = activeMonths.length > 0
+    ? activeMonths.reduce((max, d) => (d.total > max.total ? d : max), activeMonths[0])
+    : null;
 
   // Annual comparison
   const years = Array.from(new Set(allRevenues.map(r => parseInt(r.date.split('-')[0])))).sort((a, b) => a - b);
   const annualData = years.map(y => ({
-    year: y,
+    year: String(y),
     total: allRevenues.filter(r => r.date.startsWith(String(y))).reduce((s, r) => s + r.amount, 0),
   }));
-  const maxAnnual = Math.max(...annualData.map(d => d.total), 1);
 
   // Month comparison
   const currentMonthTotal = revenues.filter(r => parseInt(r.date.split('-')[1]) === compareMonth).reduce((s, r) => s + r.amount, 0);
@@ -69,80 +107,135 @@ export default function Statistiques() {
   if (loading) return <div className="flex justify-center py-16"><div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>;
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">Statistiques</h1>
-        <p className="text-slate-500 text-sm mt-0.5">Analyse de vos revenus</p>
+    <div className="p-4 max-w-4xl mx-auto space-y-3">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-slate-800">Statistiques</h1>
+          <p className="text-slate-500 text-sm mt-0.5">Analyse de vos revenus</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-slate-600 font-medium">Année</label>
+          <select
+            value={selectedYear}
+            onChange={e => setSelectedYear(Number(e.target.value))}
+            className="px-3 py-1.5 border border-slate-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+          >
+            {displayYears.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+        </div>
       </div>
 
-      {/* Year selector */}
-      <div className="flex items-center gap-3">
-        <label className="text-sm text-slate-600 font-medium">Année :</label>
-        <select value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))} className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
-          {displayYears.map(y => <option key={y} value={y}>{y}</option>)}
-        </select>
+      {/* Quick stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <StatCard
+          icon={<Wallet className="w-3.5 h-3.5" />}
+          label="Total de l'année"
+          value={formatAr(yearlyTotal)}
+          hint={`Année ${selectedYear}`}
+        />
+        <StatCard
+          icon={<BarChart3 className="w-3.5 h-3.5" />}
+          label="Moyenne mensuelle"
+          value={formatAr(Math.round(avgMonthly))}
+          hint={activeMonths.length > 0 ? `sur ${activeMonths.length} mois actifs` : 'aucun mois actif'}
+        />
+        <StatCard
+          icon={<Trophy className="w-3.5 h-3.5" />}
+          label="Meilleur mois"
+          value={bestMonth ? formatAr(bestMonth.total) : '—'}
+          hint={bestMonth ? `${MONTHS[bestMonth.month - 1]} ${selectedYear}` : 'pas encore de revenu'}
+        />
       </div>
 
       {/* Monthly chart */}
-      <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-slate-700">Revenus mensuels — {selectedYear}</h2>
-          <span className="text-sm font-bold text-emerald-600">{formatAr(yearlyTotal)}</span>
-        </div>
+      <CardShell
+        title={`Revenus mensuels — ${selectedYear}`}
+        action={<span className="text-sm font-bold text-emerald-600">{formatAr(yearlyTotal)}</span>}
+      >
         {revenues.length === 0 ? (
           <p className="text-slate-400 text-sm py-6 text-center">Aucun revenu pour cette période.</p>
         ) : (
-          <div className="space-y-2.5">
-            {monthlyData.map(d => (
-              <Bar key={d.month} value={d.total} max={maxMonthly} label={d.label} />
-            ))}
-          </div>
+          <ResponsiveContainer width="100%" height={160}>
+            <BarChart data={monthlyData} barCategoryGap="20%">
+              <CartesianGrid vertical={false} stroke={COLORS.grid} />
+              <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} width={36} />
+              <Tooltip content={<ChartTooltip />} cursor={{ fill: '#f8fafc' }} />
+              <Bar dataKey="total" radius={[3, 3, 0, 0]}>
+                {monthlyData.map((d, i) => (
+                  <Cell key={i} fill={bestMonth && d.month === bestMonth.month ? COLORS.strong : COLORS.soft} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         )}
-      </div>
+      </CardShell>
 
       {/* Annual totals */}
       {annualData.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
-          <h2 className="font-semibold text-slate-700 mb-4">Revenus par année</h2>
-          <div className="space-y-2.5">
-            {annualData.map(d => (
-              <Bar key={d.year} value={d.total} max={maxAnnual} label={String(d.year)} />
-            ))}
-          </div>
-        </div>
+        <CardShell title="Revenus par année">
+          <ResponsiveContainer width="100%" height={140}>
+            <BarChart data={annualData} barCategoryGap="30%">
+              <CartesianGrid vertical={false} stroke={COLORS.grid} />
+              <XAxis dataKey="year" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} width={36} />
+              <Tooltip content={<ChartTooltip />} cursor={{ fill: '#f8fafc' }} />
+              <Bar dataKey="total" radius={[3, 3, 0, 0]}>
+                {annualData.map((d, i) => (
+                  <Cell key={i} fill={Number(d.year) === selectedYear ? COLORS.strong : COLORS.neutral} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </CardShell>
       )}
 
       {/* Month comparison */}
-      <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
-        <h2 className="font-semibold text-slate-700 mb-4">Comparaison mensuelle</h2>
-        <div className="flex flex-wrap gap-3 mb-4">
-          <label className="text-sm text-slate-600 self-center">Mois :</label>
-          <select value={compareMonth} onChange={e => setCompareMonth(Number(e.target.value))} className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+      <CardShell title="Comparaison mensuelle">
+        <div className="flex flex-wrap gap-3 mb-3">
+          <label className="text-sm text-slate-600 self-center">Mois</label>
+          <select
+            value={compareMonth}
+            onChange={e => setCompareMonth(Number(e.target.value))}
+            className="px-3 py-1.5 border border-slate-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+          >
             {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
           </select>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-slate-50 rounded-xl p-4 text-center">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="bg-slate-50 rounded p-3 text-center">
             <p className="text-xs text-slate-500 mb-1">{MONTHS[prevMonth - 1]} {prevYear}</p>
-            <p className="font-bold text-slate-800">{formatAr(prevMonthTotal)}</p>
+            <p className="font-bold text-slate-800 text-sm">{formatAr(prevMonthTotal)}</p>
           </div>
-          <div className="bg-emerald-50 rounded-xl p-4 text-center flex flex-col items-center justify-center">
+          <div className="bg-slate-50 rounded p-3 text-center flex flex-col items-center justify-center">
             {evolution === null ? (
-              <><Minus className="w-5 h-5 text-slate-400" /><p className="text-xs text-slate-400 mt-1">Pas de données précédentes</p></>
+              <>
+                <Minus className="w-4 h-4 text-slate-400" />
+                <p className="text-xs text-slate-400 mt-1">Pas de données précédentes</p>
+              </>
             ) : evolution > 0 ? (
-              <><TrendingUp className="w-5 h-5 text-emerald-600" /><p className="font-bold text-emerald-600">+{evolution.toFixed(1)}%</p></>
+              <>
+                <TrendingUp className="w-4 h-4 text-emerald-600" />
+                <p className="font-bold text-emerald-600 text-sm">+{evolution.toFixed(1)}%</p>
+              </>
             ) : evolution < 0 ? (
-              <><TrendingDown className="w-5 h-5 text-red-500" /><p className="font-bold text-red-500">{evolution.toFixed(1)}%</p></>
+              <>
+                <TrendingDown className="w-4 h-4 text-red-500" />
+                <p className="font-bold text-red-500 text-sm">{evolution.toFixed(1)}%</p>
+              </>
             ) : (
-              <><Minus className="w-5 h-5 text-slate-500" /><p className="font-bold text-slate-500">0%</p></>
+              <>
+                <Minus className="w-4 h-4 text-slate-500" />
+                <p className="font-bold text-slate-500 text-sm">0%</p>
+              </>
             )}
           </div>
-          <div className="bg-slate-50 rounded-xl p-4 text-center">
+          <div className="bg-slate-50 rounded p-3 text-center">
             <p className="text-xs text-slate-500 mb-1">{MONTHS[compareMonth - 1]} {selectedYear}</p>
-            <p className="font-bold text-slate-800">{formatAr(currentMonthTotal)}</p>
+            <p className="font-bold text-slate-800 text-sm">{formatAr(currentMonthTotal)}</p>
           </div>
         </div>
-      </div>
+      </CardShell>
     </div>
   );
 }

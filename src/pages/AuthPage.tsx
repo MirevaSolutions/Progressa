@@ -1,6 +1,47 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { TrendingUp, Eye, EyeOff } from 'lucide-react';
+import { TrendingUp, Eye, EyeOff, Target, CalendarDays, Wallet } from 'lucide-react';
+
+const FEATURES = [
+  { icon: Wallet, text: 'Enregistrez chaque revenu en quelques secondes' },
+  { icon: Target, text: 'Fixez des objectifs mensuels et annuels' },
+  { icon: CalendarDays, text: 'Planifiez vos activités sur un calendrier dédié' },
+];
+
+function ProductPreview() {
+  return (
+    <div className="relative w-full max-w-sm">
+      {/* Carte principale : mini dashboard */}
+      <div className="bg-white/95 backdrop-blur rounded-md shadow-2xl p-4 border border-white/10">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-medium text-slate-500">Revenus — Août</p>
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 font-medium">+18%</span>
+        </div>
+        <p className="text-xl font-bold text-slate-800 mb-3">2 450 000 Ar</p>
+        <div className="flex items-end gap-1.5 h-16">
+          {[35, 55, 40, 70, 50, 85, 65].map((h, i) => (
+            <div key={i} className="flex-1 bg-emerald-100 rounded-sm overflow-hidden flex items-end" style={{ height: '100%' }}>
+              <div className="w-full bg-emerald-500 rounded-sm" style={{ height: `${h}%` }} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Carte flottante : progression d'objectif */}
+      <div className="absolute -bottom-5 -left-6 bg-white rounded-md shadow-xl p-3 border border-slate-100 flex items-center gap-3 w-48">
+        <svg viewBox="0 0 36 36" className="w-10 h-10 flex-shrink-0">
+          <path d="M18 2.5 a15.5 15.5 0 1 1 0 31 a15.5 15.5 0 1 1 0-31" fill="none" stroke="#e2e8f0" strokeWidth="3.5" />
+          <path d="M18 2.5 a15.5 15.5 0 1 1 0 31 a15.5 15.5 0 1 1 0-31" fill="none" stroke="#10b981" strokeWidth="3.5" strokeDasharray="78, 100" strokeLinecap="round" />
+          <text x="18" y="21.5" textAnchor="middle" fontSize="10" fontWeight="700" fill="#1e293b">78%</text>
+        </svg>
+        <div>
+          <p className="text-xs font-semibold text-slate-800">Objectif mensuel</p>
+          <p className="text-[11px] text-slate-400">Bientôt atteint</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function AuthPage() {
   const [mode, setMode] = useState<'login' | 'signup'>('login');
@@ -44,25 +85,84 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-500 mb-4 shadow-lg">
-            <TrendingUp className="w-7 h-7 text-white" />
+    <div className="min-h-screen grid lg:grid-cols-2">
+      {/* Panneau gauche — visible à partir de lg */}
+      <div className="hidden lg:flex relative flex-col justify-between bg-slate-900 p-10 overflow-hidden">
+        {/* Texture de fond discrète */}
+        <div
+          className="absolute inset-0 opacity-[0.07]"
+          style={{ backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)', backgroundSize: '24px 24px' }}
+        />
+        <div
+          className="absolute -top-24 -right-24 w-96 h-96 rounded-full opacity-20 blur-3xl"
+          style={{ background: 'radial-gradient(circle, #10b981, transparent 70%)' }}
+        />
+
+        <div className="relative flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded bg-emerald-500 flex items-center justify-center">
+            <TrendingUp className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Progressa</h1>
-          <p className="text-slate-400 mt-1 text-sm">Gérez vos revenus et votre temps</p>
+          <span className="text-white font-bold text-lg tracking-tight">Progressa</span>
         </div>
 
-        {/* Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <h2 className="text-xl font-semibold text-slate-800 mb-6">
-            {mode === 'login' ? 'Se connecter' : 'Créer un compte'}
+        <div className="relative">
+          <h1 className="text-3xl font-bold text-white leading-tight mb-3">
+            Prenez le contrôle<br />de vos revenus.
+          </h1>
+          <p className="text-slate-400 text-sm mb-10 max-w-sm">
+            Une seule application pour suivre vos revenus, fixer vos objectifs et organiser votre temps.
+          </p>
+          <ProductPreview />
+        </div>
+
+        <div className="relative space-y-3 mt-10">
+          {FEATURES.map(({ icon: Icon, text }, i) => (
+            <div key={i} className="flex items-center gap-3 text-slate-300 text-sm">
+              <div className="w-7 h-7 rounded bg-white/10 flex items-center justify-center flex-shrink-0">
+                <Icon className="w-3.5 h-3.5 text-emerald-400" />
+              </div>
+              {text}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Panneau droit — formulaire */}
+      <div className="flex items-center justify-center p-4 bg-white">
+        <div className="w-full max-w-sm">
+          {/* Logo mobile uniquement */}
+          <div className="lg:hidden flex items-center gap-2.5 justify-center mb-8">
+            <div className="w-9 h-9 rounded bg-emerald-500 flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-slate-800 font-bold text-lg tracking-tight">Progressa</span>
+          </div>
+
+          <h2 className="text-xl font-semibold text-slate-800 mb-1">
+            {mode === 'login' ? 'Content de vous revoir' : 'Créer votre compte'}
           </h2>
+          <p className="text-sm text-slate-500 mb-6">
+            {mode === 'login' ? 'Connectez-vous pour accéder à votre tableau de bord.' : 'Quelques secondes suffisent pour commencer.'}
+          </p>
+
+          {/* Toggle login / signup */}
+          <div className="flex border border-slate-200 rounded p-1 mb-6 text-sm">
+            <button
+              onClick={() => { setMode('login'); setError(''); }}
+              className={`flex-1 py-1.5 rounded transition-colors font-medium ${mode === 'login' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              Se connecter
+            </button>
+            <button
+              onClick={() => { setMode('signup'); setError(''); }}
+              className={`flex-1 py-1.5 rounded transition-colors font-medium ${mode === 'signup' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              S'inscrire
+            </button>
+          </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+            <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded text-red-600 text-sm">
               {error}
             </div>
           )}
@@ -74,7 +174,7 @@ export default function AuthPage() {
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-slate-800 placeholder-slate-400"
+                className="w-full px-3 py-2 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-slate-800 placeholder-slate-400"
                 placeholder="exemple@email.com"
                 autoComplete="email"
               />
@@ -87,7 +187,7 @@ export default function AuthPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-slate-800 placeholder-slate-400 pr-10"
+                  className="w-full px-3 py-2 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-slate-800 placeholder-slate-400 pr-10"
                   placeholder="••••••••"
                   autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                 />
@@ -107,29 +207,12 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 text-white font-semibold py-2.5 rounded-lg transition-colors"
+              className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 text-white font-semibold py-2.5 rounded transition-colors flex items-center justify-center gap-2"
             >
+              {loading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
               {loading ? 'Chargement...' : mode === 'login' ? 'Se connecter' : 'Créer mon compte'}
             </button>
           </form>
-
-          <div className="mt-5 text-center">
-            {mode === 'login' ? (
-              <p className="text-sm text-slate-500">
-                Pas encore de compte ?{' '}
-                <button onClick={() => { setMode('signup'); setError(''); }} className="text-emerald-600 font-medium hover:underline">
-                  S'inscrire
-                </button>
-              </p>
-            ) : (
-              <p className="text-sm text-slate-500">
-                Déjà un compte ?{' '}
-                <button onClick={() => { setMode('login'); setError(''); }} className="text-emerald-600 font-medium hover:underline">
-                  Se connecter
-                </button>
-              </p>
-            )}
-          </div>
         </div>
       </div>
     </div>

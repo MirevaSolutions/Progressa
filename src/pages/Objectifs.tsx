@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Target, Check, Pencil } from 'lucide-react';
+import { Target, Check, Pencil, X, AlertCircle } from 'lucide-react';
 import { supabase, Goal, Revenue } from '@/lib/supabase';
 import { formatAr, monthName, MONTHS } from '@/lib/format';
 
@@ -8,7 +8,7 @@ function ProgressBar({ value, max }: { value: number; max: number }) {
   const color = pct >= 100 ? 'bg-emerald-600' : pct >= 60 ? 'bg-emerald-500' : pct >= 30 ? 'bg-amber-400' : 'bg-red-400';
   return (
     <div className="mt-3">
-      <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
         <div className={`h-full ${color} rounded-full transition-all`} style={{ width: `${pct}%` }} />
       </div>
       <p className="text-right text-xs text-slate-500 mt-1">{pct.toFixed(1)}%</p>
@@ -26,13 +26,13 @@ type GoalCardProps = {
 function GoalCard({ label, goal, earned, onEdit }: GoalCardProps) {
   const remaining = goal ? Math.max(goal.target_amount - earned, 0) : 0;
   return (
-    <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6">
+    <div className="bg-white rounded-md border border-slate-100 shadow-sm p-4">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Target className="w-5 h-5 text-emerald-500" />
-          <h2 className="font-semibold text-slate-800">{label}</h2>
+          <Target className="w-4 h-4 text-emerald-500" />
+          <h2 className="font-semibold text-slate-800 text-sm">{label}</h2>
         </div>
-        <button onClick={onEdit} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-emerald-600 transition-colors">
+        <button onClick={onEdit} className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-emerald-600 transition-colors">
           <Pencil className="w-3.5 h-3.5" />
           {goal ? 'Modifier' : 'Définir'}
         </button>
@@ -40,16 +40,16 @@ function GoalCard({ label, goal, earned, onEdit }: GoalCardProps) {
 
       {goal ? (
         <>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div className="bg-slate-50 rounded-lg p-3">
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="bg-slate-50 rounded p-2.5">
               <p className="text-xs text-slate-500 mb-1">Objectif</p>
               <p className="font-bold text-slate-800 text-sm">{formatAr(goal.target_amount)}</p>
             </div>
-            <div className="bg-emerald-50 rounded-lg p-3">
+            <div className="bg-emerald-50 rounded p-2.5">
               <p className="text-xs text-emerald-600 mb-1">Réalisé</p>
               <p className="font-bold text-emerald-700 text-sm">{formatAr(earned)}</p>
             </div>
-            <div className="bg-slate-50 rounded-lg p-3">
+            <div className="bg-slate-50 rounded p-2.5">
               <p className="text-xs text-slate-500 mb-1">Reste</p>
               <p className="font-bold text-slate-700 text-sm">{remaining === 0 ? '—' : formatAr(remaining)}</p>
             </div>
@@ -94,14 +94,26 @@ function GoalModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <h3 className="font-semibold text-slate-800">{title}</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl leading-none">×</button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-[2px]">
+      <div className="bg-white rounded-md shadow-xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded bg-emerald-50 flex items-center justify-center">
+              <Target className="w-4 h-4 text-emerald-500" />
+            </div>
+            <h3 className="font-semibold text-slate-800">{title}</h3>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded p-1 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
         </div>
-        <div className="p-6 space-y-4">
-          {error && <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>}
+        <div className="p-4 space-y-4">
+          {error && (
+            <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-100 rounded text-red-600 text-sm">
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              {error}
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Montant objectif (Ar) *</label>
             <input
@@ -109,14 +121,15 @@ function GoalModal({
               min="0"
               value={form.target}
               onChange={e => setForm({ target: e.target.value })}
-              className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800"
+              className="w-full px-3 py-2 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-slate-800"
               placeholder="Ex : 2000000"
             />
           </div>
           <div className="flex gap-3 pt-2">
-            <button onClick={onClose} className="flex-1 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition-colors">Annuler</button>
-            <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 text-white text-sm font-semibold rounded-lg transition-colors">
-              {saving ? 'Enregistrement...' : 'Enregistrer'}
+            <button onClick={onClose} className="flex-1 py-2 border border-slate-200 rounded text-sm text-slate-600 hover:bg-slate-50 transition-colors">Annuler</button>
+            <button onClick={handleSave} disabled={saving} className="flex-1 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 text-white text-sm font-semibold rounded transition-colors flex items-center justify-center gap-2">
+              {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Check className="w-4 h-4" />}
+              Enregistrer
             </button>
           </div>
         </div>
@@ -172,18 +185,18 @@ export default function Objectifs() {
   if (loading) return <div className="flex justify-center py-16"><div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>;
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
+    <div className="p-4 max-w-3xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-800">Objectifs</h1>
         <p className="text-slate-500 text-sm mt-0.5">Définissez et suivez vos objectifs de revenus</p>
       </div>
 
       {/* Period selector */}
-      <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 mb-6 flex flex-wrap gap-3">
-        <select value={year} onChange={e => setYear(Number(e.target.value))} className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+      <div className="bg-white rounded-md border border-slate-100 shadow-sm p-4 mb-6 flex flex-wrap gap-3">
+        <select value={year} onChange={e => setYear(Number(e.target.value))} className="px-3 py-2 border border-slate-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
           {years.map(y => <option key={y} value={y}>{y}</option>)}
         </select>
-        <select value={month} onChange={e => setMonth(Number(e.target.value))} className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+        <select value={month} onChange={e => setMonth(Number(e.target.value))} className="px-3 py-2 border border-slate-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
           {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
         </select>
       </div>

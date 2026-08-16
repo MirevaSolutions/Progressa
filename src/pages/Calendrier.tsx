@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, X, Check, Pencil, Trash2, Clock, AlertCircle, Circle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, Check, Pencil, Trash2, Clock, AlertCircle, Circle, CalendarDays } from 'lucide-react';
 import { supabase, Task } from '@/lib/supabase';
 import { MONTHS } from '@/lib/format';
 
@@ -82,40 +82,52 @@ function TaskModal({
   const f = (field: keyof TaskForm, val: string) => setForm(p => ({ ...p, [field]: val }));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 sticky top-0 bg-white">
-          <h3 className="font-semibold text-slate-800">{task ? 'Modifier l\'activité' : 'Nouvelle activité'}</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-[2px]">
+      <div className="bg-white rounded-md shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 sticky top-0 bg-white">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded bg-emerald-50 flex items-center justify-center">
+              <CalendarDays className="w-4 h-4 text-emerald-500" />
+            </div>
+            <h3 className="font-semibold text-slate-800">{task ? 'Modifier l\'activité' : 'Nouvelle activité'}</h3>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded p-1 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
         </div>
-        <div className="p-6 space-y-4">
-          {error && <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>}
+        <div className="p-4 space-y-4">
+          {error && (
+            <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-100 rounded text-red-600 text-sm">
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              {error}
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Titre *</label>
-            <input value={form.title} onChange={e => f('title', e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800" placeholder="Titre de l'activité" />
+            <input value={form.title} onChange={e => f('title', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-slate-800" placeholder="Titre de l'activité" />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Date *</label>
-            <input type="date" value={form.date} onChange={e => f('date', e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800" />
+            <input type="date" value={form.date} onChange={e => f('date', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-slate-800" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Début</label>
-              <input type="time" value={form.start_time} onChange={e => f('start_time', e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800" />
+              <input type="time" value={form.start_time} onChange={e => f('start_time', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-slate-800" />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Fin</label>
-              <input type="time" value={form.end_time} onChange={e => f('end_time', e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800" />
+              <input type="time" value={form.end_time} onChange={e => f('end_time', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-slate-800" />
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
-            <textarea value={form.description} onChange={e => f('description', e.target.value)} rows={2} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800 resize-none" placeholder="Notes optionnelles..." />
+            <textarea value={form.description} onChange={e => f('description', e.target.value)} rows={2} className="w-full px-3 py-2 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-slate-800 resize-none" placeholder="Notes optionnelles..." />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Priorité</label>
-              <select value={form.priority} onChange={e => f('priority', e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-slate-800">
+              <select value={form.priority} onChange={e => f('priority', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-slate-800">
                 <option value="low">Faible</option>
                 <option value="medium">Moyenne</option>
                 <option value="high">Haute</option>
@@ -123,7 +135,7 @@ function TaskModal({
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Statut</label>
-              <select value={form.status} onChange={e => f('status', e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-slate-800">
+              <select value={form.status} onChange={e => f('status', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-slate-800">
                 <option value="pending">En attente</option>
                 <option value="done">Fini</option>
                 <option value="not_done">Pas fini</option>
@@ -132,7 +144,7 @@ function TaskModal({
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Rappel</label>
-            <select value={form.reminder} onChange={e => f('reminder', e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-slate-800">
+            <select value={form.reminder} onChange={e => f('reminder', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-slate-800">
               <option value="">Aucun rappel</option>
               <option value="5">5 minutes avant</option>
               <option value="10">10 minutes avant</option>
@@ -143,8 +155,8 @@ function TaskModal({
             </select>
           </div>
           <div className="flex gap-3 pt-2">
-            <button onClick={onClose} className="flex-1 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition-colors">Annuler</button>
-            <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 text-white text-sm font-semibold rounded-lg transition-colors flex items-center justify-center gap-2">
+            <button onClick={onClose} className="flex-1 py-2 border border-slate-200 rounded text-sm text-slate-600 hover:bg-slate-50 transition-colors">Annuler</button>
+            <button onClick={handleSave} disabled={saving} className="flex-1 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 text-white text-sm font-semibold rounded transition-colors flex items-center justify-center gap-2">
               {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Check className="w-4 h-4" />}
               Enregistrer
             </button>
@@ -157,7 +169,7 @@ function TaskModal({
 
 function TaskRow({ task, onEdit, onDelete, onStatusChange }: { task: Task; onEdit: () => void; onDelete: () => void; onStatusChange: (s: Status) => void }) {
   return (
-    <div className="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-100 hover:border-slate-200 transition-colors">
+    <div className="group flex items-start gap-3 p-3 bg-white rounded border border-slate-100 hover:border-slate-200 transition-colors">
       <div className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${STATUS_DOT[task.status]}`} />
       <div className="flex-1 min-w-0">
         <p className="font-medium text-slate-800 text-sm truncate">{task.title}</p>
@@ -167,7 +179,7 @@ function TaskRow({ task, onEdit, onDelete, onStatusChange }: { task: Task; onEdi
               <Clock className="w-3 h-3" />{task.start_time}{task.end_time ? ` — ${task.end_time}` : ''}
             </span>
           )}
-          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PRIORITY_COLOR[task.priority]}`}>{PRIORITY_LABEL[task.priority]}</span>
+          <span className={`text-xs px-2 py-0.5 rounded font-medium ${PRIORITY_COLOR[task.priority]}`}>{PRIORITY_LABEL[task.priority]}</span>
         </div>
         {task.description && <p className="text-xs text-slate-400 mt-1 line-clamp-1">{task.description}</p>}
       </div>
@@ -175,14 +187,14 @@ function TaskRow({ task, onEdit, onDelete, onStatusChange }: { task: Task; onEdi
         <select
           value={task.status}
           onChange={e => onStatusChange(e.target.value as Status)}
-          className="text-xs border border-slate-200 rounded-lg px-2 py-1 bg-white text-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          className="text-xs border border-slate-200 rounded px-2 py-1 bg-white text-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-500"
         >
           <option value="pending">En attente</option>
           <option value="done">Fini</option>
           <option value="not_done">Pas fini</option>
         </select>
-        <button onClick={onEdit} className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
-        <button onClick={onDelete} className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+        <button onClick={onEdit} className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors opacity-0 group-hover:opacity-100"><Pencil className="w-3.5 h-3.5" /></button>
+        <button onClick={onDelete} className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100"><Trash2 className="w-3.5 h-3.5" /></button>
       </div>
     </div>
   );
@@ -245,7 +257,7 @@ export default function Calendrier() {
   const weekDays = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
   return (
-    <div className="p-4 md:p-6 max-w-5xl mx-auto">
+    <div className="p-4 max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <div>
@@ -253,14 +265,14 @@ export default function Calendrier() {
           <p className="text-slate-500 text-sm mt-0.5">{MONTHS[month - 1]} {year}</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex border border-slate-200 rounded-lg overflow-hidden text-sm">
+          <div className="flex border border-slate-200 rounded overflow-hidden text-sm">
             {(['month', 'week', 'day'] as View[]).map(v => (
               <button key={v} onClick={() => setView(v)} className={`px-3 py-1.5 ${view === v ? 'bg-slate-800 text-white' : 'text-slate-600 hover:bg-slate-50'} transition-colors capitalize`}>
                 {v === 'month' ? 'Mois' : v === 'week' ? 'Semaine' : 'Jour'}
               </button>
             ))}
           </div>
-          <button onClick={openAdd.bind(null, selectedDate)} className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
+          <button onClick={openAdd.bind(null, selectedDate)} className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold px-3 py-2 rounded shadow-sm shadow-emerald-200 transition-colors">
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Activité</span>
           </button>
@@ -269,9 +281,9 @@ export default function Calendrier() {
 
       {/* Navigation */}
       <div className="flex items-center gap-2 mb-4">
-        <button onClick={prevMonth} className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"><ChevronLeft className="w-4 h-4" /></button>
+        <button onClick={prevMonth} className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition-colors"><ChevronLeft className="w-4 h-4" /></button>
         <span className="font-semibold text-slate-700 text-sm">{MONTHS[month - 1]} {year}</span>
-        <button onClick={nextMonth} className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"><ChevronRight className="w-4 h-4" /></button>
+        <button onClick={nextMonth} className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition-colors"><ChevronRight className="w-4 h-4" /></button>
         <button onClick={() => { setYear(now.getFullYear()); setMonth(now.getMonth() + 1); setSelectedDate(toDateStr(now)); }} className="ml-2 text-xs text-emerald-600 hover:underline">Aujourd'hui</button>
       </div>
 
@@ -281,7 +293,7 @@ export default function Calendrier() {
         <>
           {/* Month view */}
           {view === 'month' && (
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden mb-4">
+            <div className="bg-white rounded-md border border-slate-100 shadow-sm overflow-hidden mb-4">
               <div className="grid grid-cols-7 border-b border-slate-100">
                 {weekDays.map(d => <div key={d} className="text-center text-xs font-medium text-slate-400 py-2">{d}</div>)}
               </div>
@@ -328,7 +340,7 @@ export default function Calendrier() {
               return toDateStr(d);
             });
             return (
-              <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden mb-4">
+              <div className="bg-white rounded-md border border-slate-100 shadow-sm overflow-hidden mb-4">
                 <div className="grid grid-cols-7 border-b border-slate-100">
                   {weekDates.map((ds, i) => {
                     const d = new Date(ds);
@@ -363,7 +375,7 @@ export default function Calendrier() {
 
           {/* Day view */}
           {view === 'day' && (
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 mb-4">
+            <div className="bg-white rounded-md border border-slate-100 shadow-sm p-4 mb-4">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-semibold text-slate-700 text-sm">
                   {new Date(selectedDate + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
@@ -384,7 +396,7 @@ export default function Calendrier() {
 
           {/* Selected day tasks */}
           {view !== 'day' && (
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
+            <div className="bg-white rounded-md border border-slate-100 shadow-sm p-4">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-semibold text-slate-700 text-sm">
                   {new Date(selectedDate + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
@@ -395,7 +407,7 @@ export default function Calendrier() {
                 <div className="text-center py-8">
                   <Circle className="w-8 h-8 text-slate-200 mx-auto mb-3" />
                   <p className="text-slate-400 text-sm mb-3">Aucune activité prévue ce jour.</p>
-                  <button onClick={() => openAdd(selectedDate)} className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                  <button onClick={() => openAdd(selectedDate)} className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium px-3 py-2 rounded transition-colors">
                     <Plus className="w-4 h-4" /> Ajouter une activité
                   </button>
                 </div>
@@ -421,13 +433,16 @@ export default function Calendrier() {
       )}
 
       {deleteId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-            <div className="flex items-center gap-2 mb-2"><AlertCircle className="w-5 h-5 text-red-500" /><h3 className="font-semibold text-slate-800">Supprimer cette activité ?</h3></div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-[2px]">
+          <div className="bg-white rounded-md shadow-xl w-full max-w-sm p-4">
+            <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center mb-4">
+              <AlertCircle className="w-5 h-5 text-red-500" />
+            </div>
+            <h3 className="font-semibold text-slate-800 mb-1">Supprimer cette activité ?</h3>
             <p className="text-sm text-slate-500 mb-5">Cette action est irréversible.</p>
             <div className="flex gap-3">
-              <button onClick={() => setDeleteId(null)} className="flex-1 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition-colors">Annuler</button>
-              <button onClick={() => handleDelete(deleteId)} className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-lg transition-colors">Supprimer</button>
+              <button onClick={() => setDeleteId(null)} className="flex-1 py-2 border border-slate-200 rounded text-sm text-slate-600 hover:bg-slate-50 transition-colors">Annuler</button>
+              <button onClick={() => handleDelete(deleteId)} className="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded transition-colors">Supprimer</button>
             </div>
           </div>
         </div>
