@@ -9,16 +9,45 @@ export type GoalPayload = {
 };
 
 /**
- * Récupère les objectifs d'une année.
- *
- * La sécurité des données est assurée par RLS côté PostgreSQL.
+ * =========================================================
+ * UTILISATEUR CONNECTÉ
+ * =========================================================
  */
-export async function getGoalsByYear(year: number): Promise<Goal[]> {
+
+async function getCurrentUserId(): Promise<string> {
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!user) {
+    throw new Error('Utilisateur non connecté.');
+  }
+
+  return user.id;
+}
+
+/**
+ * =========================================================
+ * RÉCUPÉRER LES OBJECTIFS D'UNE ANNÉE
+ * =========================================================
+ *
+ * RLS s'occupe de ne retourner que les objectifs
+ * appartenant à l'utilisateur connecté.
+ */
+
+export async function getGoalsByYear(
+  year: number
+): Promise<Goal[]> {
   const { data, error } = await supabase
     .from('goals')
     .select('*')
     .eq('year', year)
-    .order('type');
+    .order('type', { ascending: true });
 
   if (error) {
     throw error;
@@ -28,14 +57,28 @@ export async function getGoalsByYear(year: number): Promise<Goal[]> {
 }
 
 /**
- * Crée un objectif.
+ * =========================================================
+ * CRÉER UN OBJECTIF
+ * =========================================================
  */
+
 export async function createGoal(
   payload: GoalPayload
 ): Promise<Goal> {
+  const userId = await getCurrentUserId();
+
   const { data, error } = await supabase
     .from('goals')
-    .insert(payload)
+    .insert({
+      user_id: userId,
+      type: payload.type,
+      year: payload.year,
+      month:
+        payload.type === 'monthly'
+          ? payload.month ?? null
+          : null,
+      target_amount: payload.target_amount,
+    })
     .select()
     .single();
 
@@ -47,8 +90,11 @@ export async function createGoal(
 }
 
 /**
- * Modifie un objectif existant.
+ * =========================================================
+ * MODIFIER UN OBJECTIF
+ * =========================================================
  */
+
 export async function updateGoal(
   id: string,
   targetAmount: number
@@ -70,8 +116,30 @@ export async function updateGoal(
 }
 
 /**
- * Crée ou modifie un objectif.
+ * =========================================================
+ * SUPPRIMER UN OBJECTIF
+ * =========================================================
  */
+
+export async function deleteGoal(
+  id: string
+): Promise<void> {
+  const { error } = await supabase
+    .from('goals')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    throw error;
+  }
+}
+
+/**
+ * =========================================================
+ * CRÉER OU MODIFIER UN OBJECTIF
+ * =========================================================
+ */
+
 export async function upsertGoal(
   type: GoalType,
   year: number,
@@ -79,8 +147,12 @@ export async function upsertGoal(
   month?: number,
   existingGoal?: Goal
 ): Promise<Goal> {
+
   if (existingGoal) {
-    return updateGoal(existingGoal.id, amount);
+    return updateGoal(
+      existingGoal.id,
+      amount
+    );
   }
 
   const payload: GoalPayload = {
@@ -89,7 +161,10 @@ export async function upsertGoal(
     target_amount: amount,
   };
 
-  if (type === 'monthly' && month !== undefined) {
+  if (
+    type === 'monthly' &&
+    month !== undefined
+  ) {
     payload.month = month;
   }
 

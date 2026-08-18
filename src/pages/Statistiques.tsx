@@ -3,7 +3,8 @@ import { TrendingUp, TrendingDown, Minus, Wallet, BarChart3, Trophy } from 'luci
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
 } from 'recharts';
-import { supabase, Revenue } from '@/lib/supabase';
+import { Revenue } from '@/types/revenue';
+import { getAllRevenues, getRevenuesByYear } from '@/services/statistics.service';
 import { formatAr, MONTHS } from '@/lib/format';
 
 // Palette resserrée : une seule teinte (emerald) à intensité variable, plus du gris neutre.
@@ -60,17 +61,32 @@ export default function Statistiques() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function load() {
-      const [{ data: yr }, { data: all }] = await Promise.all([
-        supabase.from('revenues').select('*').gte('date', `${selectedYear}-01-01`).lte('date', `${selectedYear}-12-31`),
-        supabase.from('revenues').select('*'),
+  async function load() {
+    try {
+      setLoading(true);
+
+      const [yearRevenues, allRevenues] = await Promise.all([
+        getRevenuesByYear(selectedYear),
+        getAllRevenues(),
       ]);
-      setRevenues(yr ?? []);
-      setAllRevenues(all ?? []);
+
+      setRevenues(yearRevenues);
+      setAllRevenues(allRevenues);
+    } catch (error) {
+      console.error(
+        'Erreur lors du chargement des statistiques:',
+        error
+      );
+
+      setRevenues([]);
+      setAllRevenues([]);
+    } finally {
       setLoading(false);
     }
-    load();
-  }, [selectedYear]);
+  }
+
+  load();
+}, [selectedYear]);
 
   const monthlyData = Array.from({ length: 12 }, (_, i) => ({
     month: i + 1,

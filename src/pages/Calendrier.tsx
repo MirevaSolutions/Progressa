@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, X, Check, Pencil, Trash2, Clock, AlertCircle, Circle, CalendarDays } from 'lucide-react';
-import { supabase, Task } from '@/lib/supabase';
+import { Task } from '@/types/task';
+import { createTask, deleteTask, getTasksByMonth, updateTask, updateTaskStatus,} from '@/services/task.service';
 import { MONTHS } from '@/lib/format';
 
 type View = 'month' | 'week' | 'day';
@@ -69,13 +70,23 @@ function TaskModal({
       status: form.status,
       reminder: form.reminder ? parseInt(form.reminder) : null,
     };
-    if (task) {
-      const { error } = await supabase.from('tasks').update(payload).eq('id', task.id);
-      if (error) { setError('Impossible de modifier l\'activité.'); setSaving(false); return; }
-    } else {
-      const { error } = await supabase.from('tasks').insert(payload);
-      if (error) { setError('Impossible d\'enregistrer l\'activité.'); setSaving(false); return; }
-    }
+    try {
+  if (task) {
+    await updateTask(task.id, payload);
+  } else {
+    await createTask(payload);
+  }
+
+  onSave();
+} catch (error) {
+  console.error(error);
+  setError(
+    task
+      ? "Impossible de modifier l'activité."
+      : "Impossible d'enregistrer l'activité."
+  );
+  setSaving(false);
+}
     onSave();
   };
 
@@ -222,12 +233,19 @@ export default function Calendrier() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const load = async () => {
-    const start = `${year}-${String(month).padStart(2, '0')}-01`;
-    const end = `${year}-${String(month).padStart(2, '0')}-${getDaysInMonth(year, month).toString().padStart(2, '0')}`;
-    const { data } = await supabase.from('tasks').select('*').gte('date', start).lte('date', end).order('start_time', { ascending: true, nullsFirst: false });
-    setTasks(data ?? []);
+  try {
+    setLoading(true);
+
+    const data = await getTasksByMonth(year, month);
+
+    setTasks(data);
+  } catch (error) {
+    console.error('Erreur lors du chargement des activités:', error);
+    setTasks([]);
+  } finally {
     setLoading(false);
-  };
+  }
+};
 
   useEffect(() => { load(); }, [year, month]);
 
@@ -235,15 +253,23 @@ export default function Calendrier() {
   const openEdit = (task: Task) => { setEditingTask(task); setModalDate(task.date); setShowModal(true); };
 
   const handleDelete = async (id: string) => {
-    await supabase.from('tasks').delete().eq('id', id);
+  try {
+    await deleteTask(id);
     setDeleteId(null);
-    load();
-  };
+    await load();
+  } catch (error) {
+    console.error('Erreur lors de la suppression:', error);
+  }
+};
 
   const handleStatusChange = async (task: Task, status: Status) => {
-    await supabase.from('tasks').update({ status }).eq('id', task.id);
-    load();
-  };
+  try {
+    await updateTaskStatus(task.id, status);
+    await load();
+  } catch (error) {
+    console.error('Erreur lors de la modification du statut:', error);
+  }
+};
 
   const prevMonth = () => { if (month === 1) { setMonth(12); setYear(y => y - 1); } else setMonth(m => m - 1); };
   const nextMonth = () => { if (month === 12) { setMonth(1); setYear(y => y + 1); } else setMonth(m => m + 1); };

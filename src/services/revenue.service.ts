@@ -7,11 +7,23 @@ export type RevenuePayload = {
   description: string;
 };
 
-/**
- * Récupère tous les revenus de l'utilisateur connecté.
- *
- * La sécurité reste assurée par les politiques RLS de Supabase.
- */
+async function getCurrentUserId(): Promise<string> {
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!user) {
+    throw new Error('Utilisateur non connecté.');
+  }
+
+  return user.id;
+}
+
 export async function getRevenues(): Promise<Revenue[]> {
   const { data, error } = await supabase
     .from('revenues')
@@ -25,15 +37,17 @@ export async function getRevenues(): Promise<Revenue[]> {
   return data ?? [];
 }
 
-/**
- * Crée un nouveau revenu.
- */
 export async function createRevenue(
   payload: RevenuePayload
 ): Promise<Revenue> {
+  const userId = await getCurrentUserId();
+
   const { data, error } = await supabase
     .from('revenues')
-    .insert(payload)
+    .insert({
+      ...payload,
+      user_id: userId,
+    })
     .select()
     .single();
 
@@ -44,9 +58,6 @@ export async function createRevenue(
   return data;
 }
 
-/**
- * Modifie un revenu existant.
- */
 export async function updateRevenue(
   id: string,
   payload: RevenuePayload
@@ -65,10 +76,9 @@ export async function updateRevenue(
   return data;
 }
 
-/**
- * Supprime un revenu.
- */
-export async function deleteRevenue(id: string): Promise<void> {
+export async function deleteRevenue(
+  id: string
+): Promise<void> {
   const { error } = await supabase
     .from('revenues')
     .delete()
@@ -79,8 +89,9 @@ export async function deleteRevenue(id: string): Promise<void> {
   }
 }
 
-/** */
-export async function getRevenuesByYear(year: number): Promise<Revenue[]> {
+export async function getRevenuesByYear(
+  year: number
+): Promise<Revenue[]> {
   const startDate = `${year}-01-01`;
   const endDate = `${year}-12-31`;
 
